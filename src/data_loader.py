@@ -38,8 +38,8 @@ class FetoscopyDataset(Dataset):
         Returns:
 
         """
-        image = Image.open(self.images[x]).convert("L")
-        mask = Image.open(self.masks[x]).convert("L")
+        image = Image.open(self.images[x])
+        mask = Image.open(self.masks[x])
         resize_transform = transforms.Resize(size=(self.x_img_size, self.y_img_size))
         image = resize_transform(image)
         mask = resize_transform(mask)

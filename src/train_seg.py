@@ -111,7 +111,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                              sampler=test_subsampler)
 
     # Init neural network
-    model = UNet(1, 64, 4)
+    model = UNet(3, 64, 4)
     model = model.cuda() if cuda else model
 
     # Init optimizer
@@ -141,16 +141,17 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                 running_jaccard += jac.item()
                 running_loss += loss.item()
 
-                if batch_idx % 1 == 0:
+                if batch_idx % 20 == 0:
                     mask = masks[0, 0, :]
                     out = output_masks[0, 0, :]
                     res = torch.cat((mask, out), 1).cpu().detach()
                     experiment.log_image(res, name=f"Train: {batch_idx}/{epoch}")
-                    print(" ", end="")
-                    print(f"Batch: {batch_idx + 1}/{len(train_loader)}"
-                          f" Loss: {loss.item():.4f}"
-                          f" Jaccard: {jac.item():.4f}"
-                          f" Time: {time.time() - start_time_epoch:.2f}s")
+
+                print(" ", end="")
+                print(f"Batch: {batch_idx + 1}/{len(train_loader)}"
+                      f" Loss: {loss.item():.4f}"
+                      f" Jaccard: {jac.item():.4f}"
+                      f" Time: {time.time() - start_time_epoch:.2f}s")
 
             print("Training process has finished. Saving training model...")
 
@@ -173,7 +174,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                 val_running_jac += jac.item()
                 val_running_loss += loss.item()
 
-                if batch_idx % 1 == 0:
+                if batch_idx % 20 == 0:
                     mask = masks[0, 0, :]
                     out = output_masks[0, 0, :]
                     res = torch.cat((mask, out), 1).cpu().detach()
