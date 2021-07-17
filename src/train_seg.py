@@ -1,4 +1,5 @@
 """Script for segmentation of vessels, fetus, tool and background."""
+from comet_ml import Experiment
 
 import os
 import argparse
@@ -68,6 +69,9 @@ parser.add_argument("--model_name",
                     help="Model name")
 args = parser.parse_args()
 
+experiment = Experiment("uicx0MlnuGNfKsvBqUHZjPFQx")
+experiment.log_parameters(args)
+
 dataset = FetoscopyDataset("../data/*/", x_img_size=224, y_img_size=224)
 
 kfold = KFold(n_splits=6, shuffle=False)
@@ -115,64 +119,83 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
 
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4, min_lr=1e-9)
 
-    for epoch in range(args.epochs):
-        start_time_epoch = time.time()
-        print(f"Starting epoch {epoch + 1}")
-        model.train()
-        running_loss = 0.0
-        running_jaccard = 0.0
-        for batch_idx, (images, masks) in enumerate(train_loader):
-            images = Variable(images.cuda() if cuda else images)
-            masks = Variable(masks.cuda() if cuda else masks)
-            masks = masks.permute(0, 2, 1, 3)
+    with experiment.train():
+        for epoch in range(args.epochs):
+            start_time_epoch = time.time()
+            print(f"Starting epoch {epoch + 1}")
+            model.train()
+            running_loss = 0.0
+            running_jaccard = 0.0
+            for batch_idx, (images, masks) in enumerate(train_loader):
+                images = Variable(images.cuda() if cuda else images)
+                masks = Variable(masks.cuda() if cuda else masks)
+                masks = masks.permute(0, 2, 1, 3)
 
-            optimizer.zero_grad()
-            output_masks = model(images)
-            loss = criterion(output_masks, masks)
-            loss.backward()
-            optimizer.step()
+                optimizer.zero_grad()
+                output_masks = model(images)
+                loss = criterion(output_masks, masks)
+                loss.backward()
+                optimizer.step()
 
-            jac = Jaccard_index_multiclass(output_masks.round(), masks, n_class=4)
-            running_jaccard += jac.item()
-            running_loss += loss.item()
+                jac = Jaccard_index_multiclass(output_masks.round(), masks, n_class=4)
+                running_jaccard += jac.item()
+                running_loss += loss.item()
 
-            if batch_idx % 1 == 0:
-                print(" ", end="")
-                print(f"Batch: {batch_idx + 1}/{len(train_loader)}"
-                      f" Loss: {loss.item():.4f}"
-                      f" Jaccard: {jac.item():.4f}"
-                      f" Time: {time.time() - start_time_epoch:.2f}s")
+                if batch_idx % 1 == 0:
+                    mask = masks[0, 0, :]
+                    out = output_masks[0, 0, :]
+                    res = torch.cat((mask, out), 1).cpu().detach()
+                    experiment.log_image(res, name=f"Train: {batch_idx}/{epoch}")
+                    print(" ", end="")
+                    print(f"Batch: {batch_idx + 1}/{len(train_loader)}"
+                          f" Loss: {loss.item():.4f}"
+                          f" Jaccard: {jac.item():.4f}"
+                          f" Time: {time.time() - start_time_epoch:.2f}s")
 
-        print("Training process has finished. Saving training model...")
+            print("Training process has finished. Saving training model...")
 
-        print("Starting testing")
+            print("Starting testing")
 
-        save_path = f"../data/model-fold-{fold}.pt"
-        torch.save(model.state_dict(), save_path)
+            save_path = f"../data/model-fold-{fold}.pt"
+            torch.save(model.state_dict(), save_path)
 
-        val_running_jac = 0.0
-        val_running_loss = 0.0
-        model.eval()
-        for batch_idx, (images, masks) in enumerate(test_loader):
-            images = Variable(images.cuda() if cuda else images)
-            masks = Variable(masks.cuda() if cuda else masks)
-            masks = masks.permute(0, 2, 1, 3)
+            val_running_jac = 0.0
+            val_running_loss = 0.0
+            model.eval()
+            for batch_idx, (images, masks) in enumerate(test_loader):
+                images = Variable(images.cuda() if cuda else images)
+                masks = Variable(masks.cuda() if cuda else masks)
+                masks = masks.permute(0, 2, 1, 3)
 
-            output_masks = model(images)
-            loss = criterion(output_masks, masks)
-            jac = Jaccard_index_multiclass(output_masks.round(), masks, n_class=4)
-            val_running_jac += jac.item()
-            val_running_loss += loss.item()
+                output_masks = model(images)
+                loss = criterion(output_masks, masks)
+                jac = Jaccard_index_multiclass(output_masks.round(), masks, n_class=4)
+                val_running_jac += jac.item()
+                val_running_loss += loss.item()
 
-        train_loss = running_loss / len(train_loader)
-        test_loss = val_running_loss / len(test_loader)
+                if batch_idx % 1 == 0:
+                    mask = masks[0, 0, :]
+                    out = output_masks[0, 0, :]
+                    res = torch.cat((mask, out), 1).cpu().detach()
+                    experiment.log_image(res, name=f"Val: {batch_idx}/{epoch}")
 
-        train_jac = running_jaccard / len(train_loader)
-        test_jac = val_running_jac / len(test_loader)
-        scheduler.step(test_loss)
-        print('    ', end='')
+            train_loss = running_loss / len(train_loader)
+            test_loss = val_running_loss / len(test_loader)
 
-        print(f"Loss: {train_loss:.4f}"
-              f" Train Jaccard: {train_jac:.4f}"
-              f" Test Loss: {test_loss:.4f}"
-              f" Test Jaccard: {test_jac:.4f}")
+            train_jac = running_jaccard / len(train_loader)
+            test_jac = val_running_jac / len(test_loader)
+            scheduler.step(test_loss)
+
+            experiment.log_current_epoch(epoch)
+            experiment.log_metric("train_jac", train_jac)
+            experiment.log_metric("test_jac", test_jac)
+            experiment.log_metric("train_loss", train_loss)
+            experiment.log_metric("test_loss", test_loss)
+            print('    ', end='')
+
+            print(f"Loss: {train_loss:.4f}"
+                  f" Train Jaccard: {train_jac:.4f}"
+                  f" Test Loss: {test_loss:.4f}"
+                  f" Test Jaccard: {test_jac:.4f}")
+
+print(f"Training UNet finished!")
