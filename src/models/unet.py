@@ -85,6 +85,6 @@ class UNet(nn.Module):
         up_transpose1 = self.up_transpose1(up_conv2)
         up_conv1 = self.up_conv1(torch.cat([up_transpose1, down1], dim=1))
         out = self.out_layer(up_conv1)
-        out = torch.sigmoid(out)
+        #out = torch.sigmoid(out)
 
         return out

@@ -49,7 +49,7 @@ parser.add_argument("--classes",
                     help="Number of classes in the dataset")
 parser.add_argument("--batch_size",
                     type=int,
-                    default=16,
+                    default=2,
                     help="Number of batch size")
 parser.add_argument("--lr",
                     type=float,
@@ -78,7 +78,7 @@ kfold = KFold(n_splits=6, shuffle=False)
 
 cuda = True if torch.cuda.is_available() else False
 
-criterion = DiceLoss()
+criterion = nn.CrossEntropyLoss()
 
 
 def Jaccard_index(pred, target):
@@ -130,6 +130,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                 images = Variable(images.cuda() if cuda else images)
                 masks = Variable(masks.cuda() if cuda else masks)
                 masks = masks.permute(0, 2, 1, 3)
+                masks = torch.argmax(masks, dim=1)
 
                 optimizer.zero_grad()
                 output_masks = model(images)
