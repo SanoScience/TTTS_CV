@@ -38,8 +38,11 @@ class FetoscopyDataset(Dataset):
         Returns:
 
         """
-        image = Image.open(self.images[x])
+        image = Image.open(self.images[x]).convert("L")
         mask = Image.open(self.masks[x]).convert("L")
+        resize_transform = transforms.Resize(size=(self.x_img_size, self.y_img_size))
+        image = resize_transform(image)
+        mask = resize_transform(mask)
 
         if random.random() > 0.5:
             color_jitter_transform = transforms.ColorJitter(
