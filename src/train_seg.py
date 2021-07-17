@@ -108,6 +108,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
 
     # Init neural network
     model = UNet(1, 64, 4)
+    model = model.cuda() if cuda else model
 
     # Init optimizer
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
