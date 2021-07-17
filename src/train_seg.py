@@ -122,18 +122,18 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                 output = model(images)
                 probs = torch.softmax(output, dim=1)
                 masks_pred = torch.argmax(probs, dim=1)
-                loss = criterion(output_masks, masks)
+                loss = criterion(output, masks)
 
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                jac = jaccard_score(y_true=masks, y_pred=output_masks)
+                jac = jaccard_score(y_true=masks, y_pred=output)
                 running_jaccard += jac.item()
                 running_loss += loss.item()
 
                 if batch_idx % 20 == 0:
                     mask = masks[0, 0, :]
-                    out = output_masks[0, 0, :]
+                    out = output[0, 0, :]
                     res = torch.cat((mask, out), 1).cpu().detach()
                     experiment.log_image(res, name=f"Train: {batch_idx}/{epoch}")
 
@@ -158,15 +158,15 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                 masks = Variable(masks.cuda() if cuda else masks)
                 masks = masks.permute(0, 2, 1, 3)
 
-                output_masks = model(images)
-                loss = criterion(output_masks, masks)
-                jac = jaccard_score(y_true=masks, y_pred=output_masks)
+                output = model(images)
+                loss = criterion(output, masks)
+                jac = jaccard_score(y_true=masks, y_pred=output)
                 val_running_jac += jac.item()
                 val_running_loss += loss.item()
 
                 if batch_idx % 20 == 0:
                     mask = masks[0, 0, :]
-                    out = output_masks[0, 0, :]
+                    out = output[0, 0, :]
                     res = torch.cat((mask, out), 1).cpu().detach()
                     experiment.log_image(res, name=f"Val: {batch_idx}/{epoch}")
 
