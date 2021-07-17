@@ -14,6 +14,7 @@ from torch.autograd import Function
 from torch.utils.data import DataLoader
 from torch.utils.data import SubsetRandomSampler
 from sklearn.model_selection import KFold
+from sklearn.metrics import jaccard_score, f1_score
 import time
 
 from models.unet import UNet
@@ -82,48 +83,6 @@ cuda = True if torch.cuda.is_available() else False
 
 criterion = nn.CrossEntropyLoss()
 
-
-class DiceCoeff(Function):
-    """Dice coeff for individual examples"""
-
-    def forward(self, input, target):
-        self.save_for_backward(input, target)
-        eps = 0.0001
-        self.inter = torch.dot(input.view(-1), target.view(-1))
-        self.union = torch.sum(input) + torch.sum(target) + eps
-
-        t = (2 * self.inter.float() + eps) / self.union.float()
-        return t
-
-    # This function has only a single output, so it gets only one gradient
-    def backward(self, grad_output):
-
-        input, target = self.saved_variables
-        grad_input = grad_target = None
-
-        if self.needs_input_grad[0]:
-            grad_input = grad_output * 2 * (target * self.union - self.inter) \
-                         / (self.union * self.union)
-        if self.needs_input_grad[1]:
-            grad_target = None
-
-        return grad_input, grad_target
-
-
-def dice_coeff(input, target):
-    """Dice coeff for batches"""
-    if input.is_cuda:
-        s = torch.FloatTensor(1).cuda().zero_()
-    else:
-        s = torch.FloatTensor(1).zero_()
-
-    for i, c in enumerate(zip(input, target)):
-        s = s + DiceCoeff().forward(c[0], c[1])
-
-    return s / (i + 1)
-
-
-
 print("--------------------")
 
 for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
@@ -159,15 +118,16 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                 images = Variable(images.cuda() if cuda else images)
                 masks = Variable(masks.cuda() if cuda else masks)
                 masks = masks.permute(0, 2, 1, 3)
-                masks = torch.argmax(masks, dim=1)
+
+                output = model(images)
+                probs = torch.softmax(output, dim=1)
+                masks_pred = torch.argmax(probs, dim=1)
+                loss = criterion(output_masks, masks)
 
                 optimizer.zero_grad()
-                output_masks = model(images)
-                loss = criterion(output_masks, masks)
                 loss.backward()
                 optimizer.step()
-
-                jac = dice_coeff(output_masks.round(), masks)
+                jac = jaccard_score(y_true=masks, y_pred=output_masks)
                 running_jaccard += jac.item()
                 running_loss += loss.item()
 
@@ -200,7 +160,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
 
                 output_masks = model(images)
                 loss = criterion(output_masks, masks)
-                jac = dice_coeff(output_masks.round(), masks)
+                jac = jaccard_score(y_true=masks, y_pred=output_masks)
                 val_running_jac += jac.item()
                 val_running_loss += loss.item()
 
