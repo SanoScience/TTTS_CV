@@ -100,10 +100,10 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
     test_subsampler = SubsetRandomSampler(test_ids)
 
     train_loader = DataLoader(dataset,
-                              batch_size=2,
+                              batch_size=args.batch_size,
                               sampler=train_subsampler)
     test_loader = DataLoader(dataset,
-                             batch_size=2,
+                             batch_size=args.batch_size,
                              sampler=test_subsampler)
 
     # Init neural network
@@ -157,6 +157,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
         for batch_idx, (images, masks) in enumerate(test_loader):
             images = Variable(images.cuda() if cuda else images)
             masks = Variable(masks.cuda() if cuda else masks)
+            masks = masks.permute(0, 2, 1, 3)
 
             output_masks = model(images)
             jac = Jaccard_index_multiclass(output_masks.round(), masks, n_class=4)
