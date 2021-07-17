@@ -150,9 +150,8 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
         save_path = f"../data/model-fold-{fold}.pt"
         torch.save(model.state_dict(), save_path)
 
-        val_running_loss = 0.0
         val_running_jac = 0.0
-
+        val_running_loss = 0.0
         model.eval()
         for batch_idx, (images, masks) in enumerate(test_loader):
             images = Variable(images.cuda() if cuda else images)
@@ -160,7 +159,10 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             masks = masks.permute(0, 2, 1, 3)
 
             output_masks = model(images)
+            loss = criterion(output_masks, masks)
             jac = Jaccard_index_multiclass(output_masks.round(), masks, n_class=4)
+            val_running_jac += jac.item()
+            val_running_loss += loss.item()
 
         train_loss = running_loss / len(train_loader)
         test_loss = val_running_loss / len(test_loader)
