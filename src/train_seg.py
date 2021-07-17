@@ -180,6 +180,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                 images = Variable(images.cuda() if cuda else images)
                 masks = Variable(masks.cuda() if cuda else masks)
                 masks = masks.permute(0, 2, 1, 3)
+                masks = torch.argmax(masks, dim=1)
 
                 output_mask = model(images)
                 loss = criterion(output_mask, masks)
