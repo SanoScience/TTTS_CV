@@ -1,6 +1,5 @@
 """Script for segmentation of vessels, fetus, tool and background."""
 from comet_ml import Experiment
-
 import os
 import numpy as np
 import argparse
@@ -83,6 +82,33 @@ cuda = True if torch.cuda.is_available() else False
 
 criterion = nn.CrossEntropyLoss()
 
+SMOOTH = 1e-6
+
+
+def mIOU(label, pred, num_classes=19):
+    pred = F.softmax(pred, dim=1)
+    pred = torch.argmax(pred, dim=1).squeeze(1)
+    iou_list = list()
+    present_iou_list = list()
+
+    pred = pred.view(-1)
+    label = label.view(-1)
+    # Note: Following for loop goes from 0 to (num_classes-1)
+    # and ignore_index is num_classes, thus ignore_index is
+    # not considered in computation of IoU.
+    for sem_class in range(num_classes):
+        pred_inds = (pred == sem_class)
+        target_inds = (label == sem_class)
+        if target_inds.long().sum().item() == 0:
+            iou_now = float('nan')
+        else:
+            intersection_now = (pred_inds[target_inds]).long().sum().item()
+            union_now = pred_inds.long().sum().item() + target_inds.long().sum().item() - intersection_now
+            iou_now = float(intersection_now) / float(union_now)
+            present_iou_list.append(iou_now)
+        iou_list.append(iou_now)
+    return np.mean(present_iou_list)
+
 print("--------------------")
 
 for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
@@ -118,24 +144,21 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                 images = Variable(images.cuda() if cuda else images)
                 masks = Variable(masks.cuda() if cuda else masks)
                 masks = masks.permute(0, 2, 1, 3)
+                masks = torch.argmax(masks, dim=1)
 
-                output = model(images)
-                probs = torch.softmax(output, dim=1)
-                masks_pred = torch.argmax(probs, dim=1)
-                loss = criterion(output, masks)
-
+                output_mask = model(images)
+                loss = criterion(output_mask, masks)
+                # output = model(images)
+                # probs = torch.softmax(output, dim=1)
+                # masks_pred = torch.argmax(probs, dim=1)
+                # loss = criterion(output, masks_pred)
+                #
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                jac = jaccard_score(y_true=masks, y_pred=output)
+                jac = mIOU(masks, output_mask, num_classes=4)
                 running_jaccard += jac.item()
                 running_loss += loss.item()
-
-                if batch_idx % 20 == 0:
-                    mask = masks[0, 0, :]
-                    out = output[0, 0, :]
-                    res = torch.cat((mask, out), 1).cpu().detach()
-                    experiment.log_image(res, name=f"Train: {batch_idx}/{epoch}")
 
                 print(" ", end="")
                 print(f"Batch: {batch_idx + 1}/{len(train_loader)}"
@@ -158,17 +181,11 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                 masks = Variable(masks.cuda() if cuda else masks)
                 masks = masks.permute(0, 2, 1, 3)
 
-                output = model(images)
-                loss = criterion(output, masks)
-                jac = jaccard_score(y_true=masks, y_pred=output)
+                output_mask = model(images)
+                loss = criterion(output_mask, masks)
+                jac = mIOU(masks, output_mask, num_classes=4)
                 val_running_jac += jac.item()
                 val_running_loss += loss.item()
-
-                if batch_idx % 20 == 0:
-                    mask = masks[0, 0, :]
-                    out = output[0, 0, :]
-                    res = torch.cat((mask, out), 1).cpu().detach()
-                    experiment.log_image(res, name=f"Val: {batch_idx}/{epoch}")
 
             train_loss = running_loss / len(train_loader)
             test_loss = val_running_loss / len(test_loader)
@@ -177,11 +194,6 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             test_jac = val_running_jac / len(test_loader)
             scheduler.step(test_loss)
 
-            experiment.log_current_epoch(epoch)
-            experiment.log_metric("train_jac", train_jac)
-            experiment.log_metric("test_jac", test_jac)
-            experiment.log_metric("train_loss", train_loss)
-            experiment.log_metric("test_loss", test_loss)
             print('    ', end='')
 
             print(f"Loss: {train_loss:.4f}"
