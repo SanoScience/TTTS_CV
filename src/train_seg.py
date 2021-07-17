@@ -17,6 +17,7 @@ from sklearn.metrics import jaccard_score, f1_score
 import time
 
 from models.unet import UNet
+from models.res_unet import UNetWithResnet50Encoder
 from data_loader import FetoscopyDataset
 from loss_functions import DiceLoss
 
@@ -74,7 +75,7 @@ args = parser.parse_args()
 experiment = Experiment("uicx0MlnuGNfKsvBqUHZjPFQx")
 experiment.log_parameters(args)
 
-dataset = FetoscopyDataset("../data/*/", x_img_size=224, y_img_size=224)
+dataset = FetoscopyDataset("../data/*/", x_img_size=448, y_img_size=448)
 
 kfold = KFold(n_splits=6, shuffle=False)
 
@@ -125,7 +126,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                              sampler=test_subsampler)
 
     # Init neural network
-    model = UNet(3, 64, 4)
+    model = UNetWithResnet50Encoder(n_classes=4)
     model = model.cuda() if cuda else model
 
     # Init optimizer
