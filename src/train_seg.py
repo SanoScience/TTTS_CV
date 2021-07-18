@@ -22,17 +22,13 @@ from data_loader import FetoscopyDataset
 from loss_functions import DiceLoss
 
 parser = argparse.ArgumentParser(description="Training Segmentation Network on Fetal Dataset.")
-parser.add_argument("--image_dataset",
+parser.add_argument("--data",
                     type=str,
-                    default="../data/*/images/*.png",
-                    help="Path to the train dataset")
-parser.add_argument("--label_dataset",
-                    type=str,
-                    default="../data/*/labels/*.png",
-                    help="Path to the validate dataset")
+                    default="../data/*/",
+                    help="Path to the data")
 parser.add_argument("--in_channels",
                     type=int,
-                    default=1,
+                    default=3,
                     help="Number of input channels")
 parser.add_argument("--out_channels",
                     type=int,
@@ -40,7 +36,7 @@ parser.add_argument("--out_channels",
                     help="Number of output channels")
 parser.add_argument("--epochs",
                     type=int,
-                    default=20,
+                    default=300,
                     help="Number of epochs")
 parser.add_argument("--num_workers",
                     type=int,
@@ -75,7 +71,7 @@ args = parser.parse_args()
 experiment = Experiment("uicx0MlnuGNfKsvBqUHZjPFQx")
 experiment.log_parameters(args)
 
-dataset = FetoscopyDataset("../data/*/", x_img_size=448, y_img_size=448)
+dataset = FetoscopyDataset(args.data, x_img_size=448, y_img_size=448)
 
 kfold = KFold(n_splits=6, shuffle=False)
 
@@ -109,6 +105,7 @@ def mIOU(label, pred, num_classes=19):
             present_iou_list.append(iou_now)
         iou_list.append(iou_now)
     return np.mean(present_iou_list)
+
 
 print("--------------------")
 
@@ -195,6 +192,12 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             train_jac = running_jaccard / len(train_loader)
             test_jac = val_running_jac / len(test_loader)
             scheduler.step(test_loss)
+
+            experiment.log_current_epoch(epoch)
+            experiment.log_metric("train_jac", train_jac)
+            experiment.log_metric("val_jac", test_jac)
+            experiment.log_metric("train_loss", train_loss)
+            experiment.log_metric("val_loss", test_loss)
 
             print('    ', end='')
 
