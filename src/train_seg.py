@@ -18,6 +18,7 @@ import time
 
 from models.unet import UNet
 from models.res_unet import UNetWithResnet50Encoder
+from models.cenet import CE_Net_OCT
 from data_loader import FetoscopyDataset
 from loss_functions import DiceLoss
 import torch.onnx
@@ -124,7 +125,8 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                              sampler=test_subsampler)
 
     # Init neural network
-    model = UNetWithResnet50Encoder(n_classes=4)
+    #model = UNetWithResnet50Encoder(n_classes=4)
+    model = CE_Net_OCT(num_classes=4)
     model = model.cuda() if cuda else model
 
     # Init optimizer
