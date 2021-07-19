@@ -20,6 +20,7 @@ from models.unet import UNet
 from models.res_unet import UNetWithResnet50Encoder
 from data_loader import FetoscopyDataset
 from loss_functions import DiceLoss
+import torch.onnx
 
 parser = argparse.ArgumentParser(description="Training Segmentation Network on Fetal Dataset.")
 parser.add_argument("--data",
@@ -36,7 +37,7 @@ parser.add_argument("--out_channels",
                     help="Number of output channels")
 parser.add_argument("--epochs",
                     type=int,
-                    default=300,
+                    default=100,
                     help="Number of epochs")
 parser.add_argument("--num_workers",
                     type=int,
@@ -48,7 +49,7 @@ parser.add_argument("--classes",
                     help="Number of classes in the dataset")
 parser.add_argument("--batch_size",
                     type=int,
-                    default=2,
+                    default=8,
                     help="Number of batch size")
 parser.add_argument("--lr",
                     type=float,
@@ -170,7 +171,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
 
             save_path = f"../data/model-fold-{fold}.pt"
             torch.save(model.state_dict(), save_path)
-
+            torch.onnx.export(model, images, f"../data/model-fold-{fold}.onnx")
             val_running_jac = 0.0
             val_running_loss = 0.0
             model.eval()
