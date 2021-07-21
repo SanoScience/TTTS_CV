@@ -44,50 +44,50 @@ class FetoscopyDataset(Dataset):
         image = resize_transform(image)
         mask = resize_transform(mask)
 
-        # if random.random() > 0.5:
-        #     color_jitter_transform = transforms.ColorJitter(
-        #         brightness=[0.8, 1.2],
-        #         contrast=[0.8, 1.2],
-        #         saturation=[0.8, 1.2],
-        #         hue=[-0.1, 0.1]
-        #     )
-        #     image = color_jitter_transform.forward(image)
-        #
-        # if random.random() > 0.5:
-        #     (angle, translations, scale, shear) = transforms.RandomAffine.get_params(
-        #         degrees=[-90, 90],
-        #         translate=[0.2, 0.2],
-        #         scale_ranges=[1, 2],
-        #         shears=[-10, 10],
-        #         img_size=[self.x_img_size, self.y_img_size]
-        #     )
-        #     image = F.affine(
-        #         img=image,
-        #         angle=angle,
-        #         translate=translations,
-        #         scale=scale,
-        #         shear=shear,
-        #         interpolation=transforms.InterpolationMode.NEAREST,
-        #         fill=0
-        #     )
-        #     mask = F.affine(
-        #         mask,
-        #         angle=angle,
-        #         translate=translations,
-        #         scale=scale,
-        #         shear=shear,
-        #         interpolation=transforms.InterpolationMode.NEAREST,
-        #         fill=0
-        #     )
-        #
-        # if random.random() > 0.5:
-        #     image = F.hflip(image)
-        #     mask = F.hflip(mask)
-        #
-        # if random.random() > 0.5:
-        #     image = F.vflip(image)
-        #     mask = F.vflip(mask)
-        #
+        if random.random() > 0.5:
+            color_jitter_transform = transforms.ColorJitter(
+                brightness=[0.8, 1.2],
+                contrast=[0.8, 1.2],
+                saturation=[0.8, 1.2],
+                hue=[-0.1, 0.1]
+            )
+            image = color_jitter_transform.forward(image)
+
+        if random.random() > 0.5:
+            (angle, translations, scale, shear) = transforms.RandomAffine.get_params(
+                degrees=[-90, 90],
+                translate=[0.2, 0.2],
+                scale_ranges=[1, 2],
+                shears=[-10, 10],
+                img_size=[self.x_img_size, self.y_img_size]
+            )
+            image = F.affine(
+                img=image,
+                angle=angle,
+                translate=translations,
+                scale=scale,
+                shear=shear,
+                interpolation=transforms.InterpolationMode.NEAREST,
+                fill=0
+            )
+            mask = F.affine(
+                mask,
+                angle=angle,
+                translate=translations,
+                scale=scale,
+                shear=shear,
+                interpolation=transforms.InterpolationMode.NEAREST,
+                fill=0
+            )
+
+        if random.random() > 0.5:
+            image = F.hflip(image)
+            mask = F.hflip(mask)
+
+        if random.random() > 0.5:
+            image = F.vflip(image)
+            mask = F.vflip(mask)
+
         # if random.random() > 0.5:
         #     image = F.gaussian_blur(img=image, kernel_size=[5, 5])
 
@@ -101,7 +101,7 @@ class FetoscopyDataset(Dataset):
         image = F.to_tensor(image)
         mask = F.to_tensor(masks)
 
-        return image, mask, self.images[x]
+        return image, mask
 
     def __len__(self) -> int:
         return len(self.images)
