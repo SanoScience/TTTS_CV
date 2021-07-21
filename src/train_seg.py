@@ -1,6 +1,5 @@
 """Script for segmentation of vessels, fetus, tool and background."""
 from comet_ml import Experiment
-import os
 import numpy as np
 import argparse
 import torch
@@ -8,19 +7,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.nn import functional as F
-from torch.autograd import Variable
-from torch.autograd import Function
 from torch.utils.data import DataLoader
 from torch.utils.data import SubsetRandomSampler
 from sklearn.model_selection import KFold
-from sklearn.metrics import jaccard_score, f1_score
 import time
 
-from models.unet import UNet
-from models.res_unet import UNetWithResnet50Encoder
-from models.cenet import CE_Net_OCT
+from models.fpn import FPN
 from data_loader import FetoscopyDataset
-from loss_functions import DiceLoss
 import torch.onnx
 
 parser = argparse.ArgumentParser(description="Training Segmentation Network on Fetal Dataset.")
@@ -77,14 +70,14 @@ dataset = FetoscopyDataset(args.data, x_img_size=448, y_img_size=448)
 
 kfold = KFold(n_splits=6, shuffle=False)
 
-cuda = True if torch.cuda.is_available() else False
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 criterion = nn.CrossEntropyLoss()
 
 SMOOTH = 1e-6
 
 
-def mIOU(label, pred, num_classes=19):
+def mIOU(label, pred, num_classes=4):
     pred = F.softmax(pred, dim=1)
     pred = torch.argmax(pred, dim=1).squeeze(1)
     iou_list = list()
@@ -125,9 +118,8 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                              sampler=test_subsampler)
 
     # Init neural network
-    #model = UNetWithResnet50Encoder(n_classes=4)
-    model = CE_Net_OCT(num_classes=4)
-    model = model.cuda() if cuda else model
+    model = FPN(num_blocks=[2, 4, 23, 3], num_classes=4, back_bone="resnet101")
+    model = model.to(device)
 
     # Init optimizer
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
@@ -142,18 +134,14 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             running_loss = 0.0
             running_jaccard = 0.0
             for batch_idx, (images, masks) in enumerate(train_loader):
-                images = Variable(images.cuda() if cuda else images)
-                masks = Variable(masks.cuda() if cuda else masks)
+                images = images.to(device=device, dtype=torch.float32)
+                masks = masks.to(device=device, dtype=torch.long)
                 masks = masks.permute(0, 2, 1, 3)
                 masks = torch.argmax(masks, dim=1)
 
                 output_mask = model(images)
                 loss = criterion(output_mask, masks)
-                # output = model(images)
-                # probs = torch.softmax(output, dim=1)
-                # masks_pred = torch.argmax(probs, dim=1)
-                # loss = criterion(output, masks_pred)
-                #
+
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -178,8 +166,8 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             val_running_loss = 0.0
             model.eval()
             for batch_idx, (images, masks) in enumerate(test_loader):
-                images = Variable(images.cuda() if cuda else images)
-                masks = Variable(masks.cuda() if cuda else masks)
+                images = images.to(device=device, dtype=torch.float32)
+                masks = masks.to(device=device, dtype=torch.long)
                 masks = masks.permute(0, 2, 1, 3)
                 masks = torch.argmax(masks, dim=1)
 
