@@ -118,7 +118,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                              sampler=test_subsampler)
 
     # Init neural network
-    model = FPN(num_blocks=[2, 4, 23, 3], num_classes=4, back_bone="resnet101")
+    model = FPN(num_blocks=[3, 4, 5, 3], num_classes=4, back_bone="resnet50")
     model = model.to(device)
 
     # Init optimizer
@@ -161,7 +161,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
 
             save_path = f"../data/model-fold-{fold}.pt"
             torch.save(model.state_dict(), save_path)
-            torch.onnx.export(model, images, f"../data/model-fold-{fold}.onnx")
+            #torch.onnx.export(model, images, f"../data/model-fold-{fold}.onnx")
             val_running_jac = 0.0
             val_running_loss = 0.0
             model.eval()

@@ -8,8 +8,8 @@ from models.backbone import ResNet, ResNet50, ResNet101, ResNet152
 
 
 def build_backbone(back_bone):
-    if back_bone == "resnet152":
-        return ResNet152(pretrained=True)
+    if back_bone == "resnet50":
+        return ResNet50(pretrained=True)
 
 
 class Bottleneck(nn.Module):
