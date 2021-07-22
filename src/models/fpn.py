@@ -4,12 +4,12 @@ import torch.nn.functional as F
 from torchvision.models.resnet import ResNet
 
 from torch.autograd import Variable
-from models.backbone import ResNet, ResNet50, ResNet101
+from models.backbone import ResNet, ResNet50, ResNet101, ResNet152
 
 
 def build_backbone(back_bone):
-    if back_bone == "resnet101":
-        return ResNet101(pretrained=True)
+    if back_bone == "resnet152":
+        return ResNet152(pretrained=True)
 
 
 class Bottleneck(nn.Module):

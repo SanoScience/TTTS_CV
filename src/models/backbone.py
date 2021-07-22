@@ -124,7 +124,7 @@ class ResNet(nn.Module):
                 m.bias.data.zero_()
 
     def _load_pretrained_model(self):
-        pretrained_dict = model_zoo.load_url(model_urls['resnet101'])
+        pretrained_dict = model_zoo.load_url(model_urls['resnet152'])
         model_dict = {}
         state_dict = self.state_dict()
         for k, v in pretrained_dict.items():
@@ -151,6 +151,11 @@ def ResNet101(pretrained=True):
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
     model = ResNet(Bottleneck, [3, 4, 23, 3], pretrained=True)
+    return model
+
+
+def ResNet152(pretrained=True):
+    model = ResNet(Bottleneck, [3, 8, 36, 3], pretrained=True)
     return model
 
 
