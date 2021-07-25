@@ -88,12 +88,12 @@ class FetoscopyDataset(Dataset):
             image = F.vflip(image)
             mask = F.vflip(mask)
 
-        if random.random() > 0.5:
-            image = F.gaussian_blur(img=image, kernel_size=[5, 5])
-
-        if random.random() > 0.5:
-            image = F.center_crop(image, ([224, 224]))
-            mask = F.center_crop(mask, ([224, 224]))
+        # if random.random() > 0.5:
+        #     image = F.gaussian_blur(img=image, kernel_size=[5, 5])
+        #
+        # if random.random() > 0.5:
+        #     image = F.center_crop(image, ([224, 224]))
+        #     mask = F.center_crop(mask, ([224, 224]))
 
         n_mask = np.asarray(mask)
 
