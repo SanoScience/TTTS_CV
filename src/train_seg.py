@@ -43,8 +43,8 @@ parser.add_argument("--classes",
                     help="Number of classes in the dataset")
 parser.add_argument("--batch_size",
                     type=int,
-                    default=8,
-                    help="Number of batch size")
+                    default=4,
+                    help="Number of biatch size")
 parser.add_argument("--lr",
                     type=float,
                     default=0.0001,
@@ -118,7 +118,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                              sampler=test_subsampler)
 
     # Init neural network
-    model = FPN(num_blocks=[3, 4, 5, 3], num_classes=4, back_bone="resnet50")
+    model = FPN(num_blocks=[3, 8, 36, 3], num_classes=4, back_bone="resnet152")
     model = model.to(device)
 
     # Init optimizer
