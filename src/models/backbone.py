@@ -150,12 +150,12 @@ def ResNet101(pretrained=True):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(Bottleneck, [3, 4, 23, 3], pretrained=False)
+    model = ResNet(Bottleneck, [3, 4, 23, 3], pretrained=True)
     return model
 
 
 def ResNet152(pretrained=True):
-    model = ResNet(Bottleneck, [3, 8, 36, 3], pretrained=False)
+    model = ResNet(Bottleneck, [3, 8, 36, 3], pretrained=True)
     return model
 
 
