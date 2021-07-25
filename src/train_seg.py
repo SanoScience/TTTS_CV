@@ -149,6 +149,12 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                 running_jaccard += jac.item()
                 running_loss += loss.item()
 
+                if batch_idx % 10 == 0:
+                    mask = masks[0, 0, :]
+                    out = output_mask[0, 0, :]
+                    res = torch.cat((mask, out), 1).cpu().detach()
+                    experiment.log_image(res, name=f"Train {batch_idx}/{epoch}")
+
                 print(" ", end="")
                 print(f"Batch: {batch_idx + 1}/{len(train_loader)}"
                       f" Loss: {loss.item():.4f}"
@@ -176,6 +182,12 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                 jac = mIOU(masks, output_mask, num_classes=4)
                 val_running_jac += jac.item()
                 val_running_loss += loss.item()
+
+                if batch_idx % 10 == 0:
+                    mask = masks[0, 0, :]
+                    out = output_mask[0, 0, :]
+                    res = torch.cat((mask, out), 1).cpu().detach()
+                    experiment.log_image(res, name=f"Train: {batch_idx}/{epoch}")
 
             train_loss = running_loss / len(train_loader)
             test_loss = val_running_loss / len(test_loader)
