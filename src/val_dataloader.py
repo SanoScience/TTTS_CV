@@ -11,7 +11,7 @@ import torchvision.transforms.functional as F
 from torch.utils.data.dataset import Dataset
 
 
-class FetoscopyDatasetTrain(Dataset):
+class FetoscopyDatasetVal(Dataset):
     """FetoscopyDataset class."""
     def __init__(self, data_path, x_img_size, y_img_size) -> None:
         """
@@ -43,50 +43,6 @@ class FetoscopyDatasetTrain(Dataset):
         resize_transform = transforms.Resize(size=(self.x_img_size, self.y_img_size))
         image = resize_transform(image)
         mask = resize_transform(mask)
-
-        if random.random() > 0.5:
-            color_jitter_transform = transforms.ColorJitter(
-                brightness=[0.8, 1.2],
-                contrast=[0.8, 1.2],
-                saturation=[0.8, 1.2],
-                hue=[-0.1, 0.1]
-            )
-            image = color_jitter_transform.forward(image)
-
-        if random.random() > 0.5:
-            (angle, translations, scale, shear) = transforms.RandomAffine.get_params(
-                degrees=[-90, 90],
-                translate=[0.2, 0.2],
-                scale_ranges=[1, 2],
-                shears=[-10, 10],
-                img_size=[self.x_img_size, self.y_img_size]
-            )
-            image = F.affine(
-                img=image,
-                angle=angle,
-                translate=translations,
-                scale=scale,
-                shear=shear,
-                interpolation=transforms.InterpolationMode.NEAREST,
-                fill=0
-            )
-            mask = F.affine(
-                mask,
-                angle=angle,
-                translate=translations,
-                scale=scale,
-                shear=shear,
-                interpolation=transforms.InterpolationMode.NEAREST,
-                fill=0
-            )
-
-        if random.random() > 0.5:
-            image = F.hflip(image)
-            mask = F.hflip(mask)
-
-        if random.random() > 0.5:
-            image = F.vflip(image)
-            mask = F.vflip(mask)
 
         n_mask = np.asarray(mask)
 

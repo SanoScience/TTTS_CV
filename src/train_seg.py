@@ -9,11 +9,13 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.data import SubsetRandomSampler
+from torchvision import transforms
 from sklearn.model_selection import KFold
 import time
 
 from models.fpn import FPN
-from data_loader import FetoscopyDataset
+from data_loader import FetoscopyDatasetTrain
+from val_dataloader import FetoscopyDatasetVal
 import torch.onnx
 
 parser = argparse.ArgumentParser(description="Training Segmentation Network on Fetal Dataset.")
@@ -66,16 +68,6 @@ args = parser.parse_args()
 experiment = Experiment("uicx0MlnuGNfKsvBqUHZjPFQx")
 experiment.log_parameters(args)
 
-dataset = FetoscopyDataset(args.data, x_img_size=448, y_img_size=448)
-
-kfold = KFold(n_splits=6, shuffle=False)
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-criterion = nn.CrossEntropyLoss()
-
-SMOOTH = 1e-6
-
 
 def mIOU(label, pred, num_classes=4):
     pred = F.softmax(pred, dim=1)
@@ -102,6 +94,19 @@ def mIOU(label, pred, num_classes=4):
     return np.mean(present_iou_list)
 
 
+dataset = FetoscopyDatasetVal(args.data, x_img_size=448, y_img_size=448)
+
+kfold = KFold(n_splits=6, shuffle=False)
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+criterion = nn.CrossEntropyLoss()
+
+SMOOTH = 1e-6
+
+train_dataset = FetoscopyDatasetTrain(args.data, x_img_size=448, y_img_size=448)
+val_dataset = FetoscopyDatasetVal(args.data, x_img_size=448, y_img_size=448)
+
 print("--------------------")
 
 for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
@@ -110,10 +115,10 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
     train_subsampler = SubsetRandomSampler(train_ids)
     test_subsampler = SubsetRandomSampler(test_ids)
 
-    train_loader = DataLoader(dataset,
+    train_loader = DataLoader(train_dataset,
                               batch_size=args.batch_size,
                               sampler=train_subsampler)
-    test_loader = DataLoader(dataset,
+    test_loader = DataLoader(val_dataset,
                              batch_size=args.batch_size,
                              sampler=test_subsampler)
 
