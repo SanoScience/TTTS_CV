@@ -35,13 +35,21 @@ parser.add_argument("--epochs",
                     type=int,
                     default=100,
                     help="Number of epochs")
+parser.add_argument("--x_size",
+                    type=int,
+                    default=224,
+                    help="X image size")
+parser.add_argument("--y_size",
+                    type=int,
+                    default=224,
+                    help="Y image size")
 parser.add_argument("--num_workers",
                     type=int,
                     default=0,
                     help="Number of workers for processing the data")
 parser.add_argument("--classes",
                     type=int,
-                    default=1,
+                    default=4,
                     help="Number of classes in the dataset")
 parser.add_argument("--batch_size",
                     type=int,
@@ -94,7 +102,7 @@ def mIOU(label, pred, num_classes=4):
     return np.mean(present_iou_list)
 
 
-dataset = FetoscopyDatasetVal(args.data, x_img_size=448, y_img_size=448)
+dataset = FetoscopyDatasetVal(args.data, x_img_size=args.x_size, y_img_size=args.y_size)
 
 kfold = KFold(n_splits=6, shuffle=False)
 
@@ -104,8 +112,8 @@ criterion = nn.CrossEntropyLoss()
 
 SMOOTH = 1e-6
 
-train_dataset = FetoscopyDatasetTrain(args.data, x_img_size=448, y_img_size=448)
-val_dataset = FetoscopyDatasetVal(args.data, x_img_size=448, y_img_size=448)
+train_dataset = FetoscopyDatasetTrain(args.data, x_img_size=args.x_size, y_img_size=args.y_size)
+val_dataset = FetoscopyDatasetVal(args.data, x_img_size=args.x_size, y_img_size=args.y_size)
 
 print("--------------------")
 
@@ -127,7 +135,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
     model = model.to(device)
 
     # Init optimizer
-    optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4, min_lr=1e-9)
 
