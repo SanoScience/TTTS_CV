@@ -133,11 +133,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
     # Init neural network
     model = FPN(num_blocks=[3, 8, 36, 3], num_classes=4, back_bone="resnet152")
 
-    if torch.cuda.device_count() > 1:
-        print(f"Let's use {torch.cuda.device_count()} GPUs!")
-        model = nn.DataParallel(model)
-    else:
-        model = model.to(device)
+    model = model.to(device)
 
     # Init optimizer
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -177,11 +173,9 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
 
             print("Starting testing")
 
-            save_path = f"../data/model-fold-{fold}.pt"
-            torch.save(model.state_dict(), save_path)
-            #torch.onnx.export(model, images, f"../data/model-fold-{fold}.onnx")
             val_running_jac = 0.0
             val_running_loss = 0.0
+            best_accuracy = 0.0
             model.eval()
             for batch_idx, (images, masks) in enumerate(test_loader):
                 images = images.to(device=device, dtype=torch.float32)
@@ -200,6 +194,14 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
 
             train_jac = running_jaccard / len(train_loader)
             test_jac = val_running_jac / len(test_loader)
+
+            best_accuracy += test_jac
+
+            save_path = f"../data/model-fold-{fold}.pt"
+            if test_jac > best_accuracy:
+                print(f"Best accuracy: {test_jac}. Saving the model...")
+                torch.save(model.state_dict(), save_path)
+
             scheduler.step(test_loss)
 
             experiment.log_current_epoch(epoch)
