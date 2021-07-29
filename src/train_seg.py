@@ -195,12 +195,8 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             train_jac = running_jaccard / len(train_loader)
             test_jac = val_running_jac / len(test_loader)
 
-            best_accuracy += test_jac
-
             save_path = f"../data/model-fold-{fold}.pt"
-            if test_jac > best_accuracy:
-                print(f"Best accuracy: {test_jac}. Saving the model...")
-                torch.save(model.state_dict(), save_path)
+            torch.save(model.state_dict(), save_path)
 
             scheduler.step(test_loss)
 
