@@ -104,9 +104,9 @@ def mIOU(label, pred, num_classes=4):
 
 dataset = FetoscopyDatasetVal(args.data, x_img_size=args.x_size, y_img_size=args.y_size)
 
-kfold = KFold(n_splits=6, shuffle=False)
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+kfold = KFold(n_splits=6, shuffle=False)
 
 criterion = nn.CrossEntropyLoss()
 
@@ -132,7 +132,12 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
 
     # Init neural network
     model = FPN(num_blocks=[3, 8, 36, 3], num_classes=4, back_bone="resnet152")
-    model = model.to(device)
+
+    if torch.cuda.device_count() > 1:
+        print(f"Let's use {torch.cuda.device_count()} GPUs!")
+        model = nn.DataParallel(model)
+    else:
+        model = model.to(device)
 
     # Init optimizer
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
