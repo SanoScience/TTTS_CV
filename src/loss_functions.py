@@ -50,21 +50,21 @@ class DiceBCELoss(nn.Module):
         return Dice_BCE
 
 
-class FocalLoss(nn.Module):
-    def __init__(self, gamma):
-        super().__init__()
-        self.gamma = gamma
-
-    def forward(self, input, target):
-        if not (target.size() == input.size()):
-            raise ValueError("Target size ({}) must be the same as input size ({})"
-                             .format(target.size(), input.size()))
-        max_val = (-input).clamp(min=0)
-        loss = input - input * target + max_val + \
-               ((-max_val).exp() + (-input - max_val).exp()).log()
-        invprobs = F.logsigmoid(-input * (target * 2.0 - 1.0))
-        loss = (invprobs * self.gamma).exp() * loss
-        return loss.mean()
+# class FocalLoss(nn.Module):
+#     def __init__(self, gamma):
+#         super().__init__()
+#         self.gamma = gamma
+#
+#     def forward(self, input, target):
+#         if not (target.size() == input.size()):
+#             raise ValueError("Target size ({}) must be the same as input size ({})"
+#                              .format(target.size(), input.size()))
+#         max_val = (-input).clamp(min=0)
+#         loss = input - input * target + max_val + \
+#                ((-max_val).exp() + (-input - max_val).exp()).log()
+#         invprobs = F.logsigmoid(-input * (target * 2.0 - 1.0))
+#         loss = (invprobs * self.gamma).exp() * loss
+#         return loss.mean()
 
 
 class MixedLoss(nn.Module):
@@ -76,3 +76,17 @@ class MixedLoss(nn.Module):
     def forward(self, input, target):
         loss = self.alpha * self.focal(input, target) - torch.log(dice_loss(input, target))
         return loss.mean()
+
+
+class FocalLoss(nn.modules.loss._WeightedLoss):
+    def __init__(self, weight=None, gamma=2, reduction='mean'):
+        super(FocalLoss, self).__init__(weight, reduction=reduction)
+        self.gamma = gamma
+        self.weight = weight #weight parameter will act as the alpha parameter to balance class weights
+
+    def forward(self, input, target):
+
+        ce_loss = F.cross_entropy(input, target, reduction=self.reduction, weight=self.weight)
+        pt = torch.exp(-ce_loss)
+        focal_loss = ((1 - pt) ** self.gamma * ce_loss).mean()
+        return focal_loss
