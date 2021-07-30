@@ -9,6 +9,9 @@ import torch
 from torchvision import transforms
 import torchvision.transforms.functional as F
 from torch.utils.data.dataset import Dataset
+import cv2
+import sys
+np.set_printoptions(threshold=sys.maxsize)
 
 
 class FetoscopyDatasetTrain(Dataset):
@@ -35,11 +38,17 @@ class FetoscopyDatasetTrain(Dataset):
             x:
         Returns:
         """
-        image = Image.open(self.images[x])
-        mask = Image.open(self.masks[x])
-        resize_transform = transforms.Resize(size=(self.x_img_size, self.y_img_size))
-        image = resize_transform(image)
-        mask = resize_transform(mask)
+        image = cv2.imread(self.images[x])
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        mask = cv2.imread(self.masks[x])
+
+        transform = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((224, 224)),
+        ])
+
+        image = transform(image)
+        mask = transform(mask)
 
         if random.random() > 0.5:
             color_jitter_transform = transforms.ColorJitter(
@@ -84,8 +93,6 @@ class FetoscopyDatasetTrain(Dataset):
         if random.random() > 0.5:
             image = F.vflip(image)
             mask = F.vflip(mask)
-
-        mask = np.asarray(mask)
 
         image = F.to_tensor(image)
         mask = F.to_tensor(mask)

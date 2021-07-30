@@ -132,7 +132,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             for batch_idx, (images, masks) in enumerate(train_loader):
                 images = images.to(device=device, dtype=torch.float32)
                 masks = masks.to(device=device, dtype=torch.long)
-
+                masks = torch.argmax(masks, dim=1)
                 output_mask = model(images)
                 loss = criterion(output_mask, masks.squeeze(1))
 
@@ -159,6 +159,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             for batch_idx, (images, masks) in enumerate(test_loader):
                 images = images.to(device=device, dtype=torch.float32)
                 masks = masks.to(device=device, dtype=torch.long)
+                masks = torch.argmax(masks, dim=1)
 
                 output_mask = model(images)
                 loss = criterion(output_mask, masks)
