@@ -132,14 +132,15 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             for batch_idx, (images, masks) in enumerate(train_loader):
                 images = images.to(device=device, dtype=torch.float32)
                 masks = masks.to(device=device, dtype=torch.long)
-                masks = torch.argmax(masks, dim=1)
+                masks = masks.permute(0, 2, 1, 3)
+                masks_max = torch.argmax(masks, dim=1)
                 output_mask = model(images)
-                loss = criterion(output_mask, masks.squeeze(1))
+                loss = criterion(output_mask, masks_max)
 
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                jac = mIOU(masks, output_mask, num_classes=args.classes)
+                jac = mIOU(masks_max, output_mask, num_classes=args.classes)
                 running_jaccard += jac.item()
                 running_loss += loss.item()
 
@@ -159,11 +160,12 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             for batch_idx, (images, masks) in enumerate(test_loader):
                 images = images.to(device=device, dtype=torch.float32)
                 masks = masks.to(device=device, dtype=torch.long)
-                masks = torch.argmax(masks, dim=1)
+                masks = masks.permute(0, 2, 1, 3)
+                masks_max = torch.argmax(masks, dim=1)
 
                 output_mask = model(images)
-                loss = criterion(output_mask, masks)
-                jac = mIOU(masks, output_mask, num_classes=args.classes)
+                loss = criterion(output_mask, masks_max)
+                jac = mIOU(masks_max, output_mask, num_classes=args.classes)
                 val_running_jac += jac.item()
                 val_running_loss += loss.item()
 
