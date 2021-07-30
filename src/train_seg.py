@@ -1,21 +1,18 @@
 """Script for segmentation of vessels, fetus, tool and background."""
 from comet_ml import Experiment
-import numpy as np
 import argparse
-import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.data import SubsetRandomSampler
-from torchvision import transforms
 from sklearn.model_selection import KFold
 import time
 
 from models.fpn import FPN
 from data_loader import FetoscopyDatasetTrain
 from val_dataloader import FetoscopyDatasetVal
+from utils import mIOU
 import torch.onnx
 
 parser = argparse.ArgumentParser(description="Training Segmentation Network on Fetal Dataset.")
@@ -63,6 +60,14 @@ parser.add_argument("--weight_decay",
                     type=float,
                     default=0.0001,
                     help="Number of weight decay")
+parser.add_argument("--backbone",
+                    type=str,
+                    default="resnet152",
+                    help="Encoder backbone")
+parser.add_argument("--parallel",
+                    type=bool,
+                    default=False,
+                    help="Parallel learning on GPU")
 parser.add_argument("--GPU",
                     type=bool,
                     default=True,
@@ -75,32 +80,6 @@ args = parser.parse_args()
 
 experiment = Experiment("uicx0MlnuGNfKsvBqUHZjPFQx")
 experiment.log_parameters(args)
-
-
-def mIOU(label, pred, num_classes=4):
-    pred = F.softmax(pred, dim=1)
-    pred = torch.argmax(pred, dim=1).squeeze(1)
-    iou_list = list()
-    present_iou_list = list()
-
-    pred = pred.view(-1)
-    label = label.view(-1)
-    # Note: Following for loop goes from 0 to (num_classes-1)
-    # and ignore_index is num_classes, thus ignore_index is
-    # not considered in computation of IoU.
-    for sem_class in range(num_classes):
-        pred_inds = (pred == sem_class)
-        target_inds = (label == sem_class)
-        if target_inds.long().sum().item() == 0:
-            iou_now = float('nan')
-        else:
-            intersection_now = (pred_inds[target_inds]).long().sum().item()
-            union_now = pred_inds.long().sum().item() + target_inds.long().sum().item() - intersection_now
-            iou_now = float(intersection_now) / float(union_now)
-            present_iou_list.append(iou_now)
-        iou_list.append(iou_now)
-    return np.mean(present_iou_list)
-
 
 dataset = FetoscopyDatasetVal(args.data, x_img_size=args.x_size, y_img_size=args.y_size)
 
@@ -131,9 +110,12 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                              sampler=test_subsampler)
 
     # Init neural network
-    model = FPN(num_blocks=[3, 8, 36, 3], num_classes=4, back_bone="resnet152")
+    model = FPN(num_blocks=[3, 8, 36, 3], num_classes=args.classes, back_bone=args.backbone)
 
-    model = model.to(device)
+    if args.parallel:
+        model = nn.DataParallel(model).to(device)
+    else:
+        model = model.to(device)
 
     # Init optimizer
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -150,28 +132,25 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             for batch_idx, (images, masks) in enumerate(train_loader):
                 images = images.to(device=device, dtype=torch.float32)
                 masks = masks.to(device=device, dtype=torch.long)
-                masks = masks.permute(0, 2, 1, 3)
-                masks_max = torch.argmax(masks, dim=1)
-
+                masks = torch.argmax(masks, dim=1)
                 output_mask = model(images)
-                loss = criterion(output_mask, masks_max)
+                loss = criterion(output_mask, masks.squeeze(1))
 
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                jac = mIOU(masks_max, output_mask, num_classes=4)
+                jac = mIOU(masks, output_mask, num_classes=args.classes)
                 running_jaccard += jac.item()
                 running_loss += loss.item()
 
-                print(" ", end="")
-                print(f"Batch: {batch_idx + 1}/{len(train_loader)}"
-                      f" Loss: {loss.item():.4f}"
-                      f" Jaccard: {jac.item():.4f}"
-                      f" Time: {time.time() - start_time_epoch:.2f}s")
+                if batch_idx % 20 == 0:
+                    print(" ", end="")
+                    print(f"Batch: {batch_idx + 1}/{len(train_loader)}"
+                          f" Loss: {loss.item():.4f}"
+                          f" Jaccard: {jac.item():.4f}"
+                          f" Time: {time.time() - start_time_epoch:.2f}s")
 
-            print("Training process has finished. Saving training model...")
-
-            print("Starting testing")
+            print("Training process has finished. Starting testing...")
 
             val_running_jac = 0.0
             val_running_loss = 0.0
@@ -180,12 +159,11 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             for batch_idx, (images, masks) in enumerate(test_loader):
                 images = images.to(device=device, dtype=torch.float32)
                 masks = masks.to(device=device, dtype=torch.long)
-                masks = masks.permute(0, 2, 1, 3)
-                masks_max = torch.argmax(masks, dim=1)
+                masks = torch.argmax(masks, dim=1)
 
                 output_mask = model(images)
-                loss = criterion(output_mask, masks_max)
-                jac = mIOU(masks_max, output_mask, num_classes=4)
+                loss = criterion(output_mask, masks)
+                jac = mIOU(masks, output_mask, num_classes=args.classes)
                 val_running_jac += jac.item()
                 val_running_loss += loss.item()
 

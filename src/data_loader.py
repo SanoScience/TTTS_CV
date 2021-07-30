@@ -13,6 +13,7 @@ from torch.utils.data.dataset import Dataset
 
 class FetoscopyDatasetTrain(Dataset):
     """FetoscopyDataset class."""
+
     def __init__(self, data_path, x_img_size, y_img_size) -> None:
         """
 
@@ -41,6 +42,10 @@ class FetoscopyDatasetTrain(Dataset):
         image = Image.open(self.images[x])
         mask = Image.open(self.masks[x])
         resize_transform = transforms.Resize(size=(self.x_img_size, self.y_img_size))
+        normalize_transform = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        )
         image = resize_transform(image)
         mask = resize_transform(mask)
 
@@ -96,6 +101,7 @@ class FetoscopyDatasetTrain(Dataset):
         masks = np.array(masks)
 
         image = F.to_tensor(image)
+        image = normalize_transform(image)
         mask = F.to_tensor(masks)
 
         return image, mask
