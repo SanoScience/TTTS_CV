@@ -31,12 +31,9 @@ class FetoscopyDatasetTrain(Dataset):
 
     def __getitem__(self, x) -> (torch.Tensor, torch.Tensor):
         """
-
         Args:
             x:
-
         Returns:
-
         """
         image = Image.open(self.images[x])
         mask = Image.open(self.masks[x])
@@ -88,15 +85,10 @@ class FetoscopyDatasetTrain(Dataset):
             image = F.vflip(image)
             mask = F.vflip(mask)
 
-        n_mask = np.asarray(mask)
-
-        masks = []
-        for class_idx in range(self.n_classes):
-            masks.append((n_mask == class_idx).astype(int))
-        masks = np.array(masks)
+        mask = np.asarray(mask)
 
         image = F.to_tensor(image)
-        mask = F.to_tensor(masks)
+        mask = F.to_tensor(mask)
 
         return image, mask
 
