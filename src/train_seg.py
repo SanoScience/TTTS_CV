@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import SubsetRandomSampler
 from sklearn.model_selection import KFold
 import time
+import torchvision
 
 from models.fpn import FPN
 from data_loader import FetoscopyDatasetTrain
@@ -110,7 +111,8 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                              sampler=test_subsampler)
 
     # Init neural network
-    model = FPN(num_blocks=[3, 8, 36, 3], num_classes=args.classes, back_bone=args.backbone)
+    #model = FPN(num_blocks=[3, 8, 36, 3], num_classes=args.classes, back_bone=args.backbone)
+    model = torchvision.models.segmentation.deeplabv3_resnet101(pretrained=False, num_classes=4)
 
     if args.parallel:
         model = nn.DataParallel(model).to(device)
