@@ -111,8 +111,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                              sampler=test_subsampler)
 
     # Init neural network
-    #model = FPN(num_blocks=[3, 8, 36, 3], num_classes=args.classes, back_bone=args.backbone)
-    model = torchvision.models.segmentation.deeplabv3_resnet101(pretrained=False, num_classes=4)
+    model = FPN(num_blocks=[3, 8, 36, 3], num_classes=args.classes, back_bone=args.backbone)
 
     if args.parallel:
         model = nn.DataParallel(model).to(device)
