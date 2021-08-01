@@ -119,7 +119,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
         model = model.to(device)
 
     # Init optimizer
-    optimizer = optim.SGD(model.parameters(), lr=args.lr)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4, min_lr=1e-9)
 
