@@ -124,6 +124,9 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=4, min_lr=1e-9)
 
     with experiment.train():
+
+        best_val_score = 0.0
+
         for epoch in range(args.epochs):
             start_time_epoch = time.time()
             print(f"Starting epoch {epoch + 1}")
@@ -156,7 +159,6 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
 
             val_running_jac = 0.0
             val_running_loss = 0.0
-            best_accuracy = 0.0
             model.eval()
             for batch_idx, (images, masks) in enumerate(test_loader):
                 images = images.to(device=device, dtype=torch.float32)
@@ -176,12 +178,12 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             train_jac = running_jaccard / len(train_loader)
             test_jac = val_running_jac / len(test_loader)
 
-            save_path = f"../data/model-fold-{fold}.pt"
+            save_path = f"../data/model-fold-{fold}_224.pt"
 
-            if best_accuracy < test_jac:
+            if best_val_score < test_jac:
                 torch.save(model.state_dict(), save_path)
-                best_accuracy = test_jac
-                print(f"Model saved!")
+                best_val_score = test_jac
+                print(f"Current best val score {best_val_score}. Model saved!")
 
             scheduler.step(test_loss)
 
@@ -198,4 +200,4 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                   f" Test Loss: {test_loss:.4f}"
                   f" Test Jaccard: {test_jac:.4f}")
 
-print(f"Training UNet finished!")
+print(f"Training finished!")
