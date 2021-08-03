@@ -111,7 +111,18 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                              sampler=test_subsampler)
 
     # Init neural network
-    model = FPN(num_blocks=[3, 8, 36, 3], num_classes=args.classes, back_bone=args.backbone)
+    #model = FPN(num_blocks=[3, 8, 36, 3], num_classes=args.classes, back_bone=args.backbone)
+
+    model = torch.hub.load(
+        'AdeelH/pytorch-fpn',
+        'make_fpn_efficientnet',
+        name='efficientnet-b7',
+        fpn_type='panoptic',
+        num_classes=4,
+        fpn_channels=256,
+        in_channels=3,
+        out_size=(224, 224)
+    )
 
     if args.parallel:
         model = nn.DataParallel(model).to(device)
@@ -178,7 +189,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             train_jac = running_jaccard / len(train_loader)
             test_jac = val_running_jac / len(test_loader)
 
-            save_path = f"../data/model-fold-{fold}_224.pt"
+            save_path = f"../data/model-fold-{fold}_efficient_224.pt"
 
             if best_val_score < test_jac:
                 torch.save(model.state_dict(), save_path)
