@@ -11,6 +11,7 @@ import time
 import torchvision
 
 from models.fpn import FPN
+from models.unetpp import NestedUNet
 from data_loader import FetoscopyDatasetTrain
 from val_dataloader import FetoscopyDatasetVal
 from utils import mIOU
@@ -113,16 +114,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
     # Init neural network
     #model = FPN(num_blocks=[3, 8, 36, 3], num_classes=args.classes, back_bone=args.backbone)
 
-    model = torch.hub.load(
-        'AdeelH/pytorch-fpn',
-        'make_fpn_efficientnet',
-        name='efficientnet-b7',
-        fpn_type='panoptic',
-        num_classes=4,
-        fpn_channels=256,
-        in_channels=3,
-        out_size=(224, 224)
-    )
+    model = NestedUNet(in_channel=3, out_channel=4)
 
     if args.parallel:
         model = nn.DataParallel(model).to(device)
