@@ -137,7 +137,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             for batch_idx, (images, masks) in enumerate(train_loader):
                 images = images.to(device=device, dtype=torch.float32)
                 masks = masks.to(device=device, dtype=torch.long)
-                masks = masks.permute(0, 2, 1, 3)
+                masks = masks.permute(0, 2, 3, 1)
                 masks_max = torch.argmax(masks, dim=1)
                 output_mask = model(images)
                 loss = criterion(output_mask, masks_max)
@@ -164,7 +164,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             for batch_idx, (images, masks) in enumerate(test_loader):
                 images = images.to(device=device, dtype=torch.float32)
                 masks = masks.to(device=device, dtype=torch.long)
-                masks = masks.permute(0, 2, 1, 3)
+                masks = masks.permute(0, 2, 3, 1)
                 masks_max = torch.argmax(masks, dim=1)
 
                 output_mask = model(images)
@@ -179,7 +179,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             train_jac = running_jaccard / len(train_loader)
             test_jac = val_running_jac / len(test_loader)
 
-            save_path = f"../data/model-fold-{fold}_448.pt"
+            save_path = f"../data/model-fold-{fold}_transposed_224.pt"
 
             if best_val_score < test_jac:
                 torch.save(model.state_dict(), save_path)
