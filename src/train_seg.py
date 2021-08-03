@@ -36,11 +36,11 @@ parser.add_argument("--epochs",
                     help="Number of epochs")
 parser.add_argument("--x_size",
                     type=int,
-                    default=224,
+                    default=448,
                     help="X image size")
 parser.add_argument("--y_size",
                     type=int,
-                    default=224,
+                    default=448,
                     help="Y image size")
 parser.add_argument("--num_workers",
                     type=int,
@@ -112,9 +112,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
                              sampler=test_subsampler)
 
     # Init neural network
-    #model = FPN(num_blocks=[3, 8, 36, 3], num_classes=args.classes, back_bone=args.backbone)
-
-    model = NestedUNet(in_channel=3, out_channel=4)
+    model = FPN(num_blocks=[3, 8, 36, 3], num_classes=args.classes, back_bone=args.backbone)
 
     if args.parallel:
         model = nn.DataParallel(model).to(device)
@@ -181,7 +179,7 @@ for fold, (train_ids, test_ids) in enumerate(kfold.split(dataset)):
             train_jac = running_jaccard / len(train_loader)
             test_jac = val_running_jac / len(test_loader)
 
-            save_path = f"../data/model-fold-{fold}_efficient_224.pt"
+            save_path = f"../data/model-fold-{fold}_448.pt"
 
             if best_val_score < test_jac:
                 torch.save(model.state_dict(), save_path)
