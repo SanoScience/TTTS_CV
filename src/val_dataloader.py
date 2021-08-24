@@ -55,7 +55,7 @@ class FetoscopyDatasetVal(Dataset):
         image = F.to_tensor(image)
         mask = F.to_tensor(masks)
 
-        return image, mask
+        return image, mask, self.masks[x]
 
     def __len__(self) -> int:
         return len(self.images)
