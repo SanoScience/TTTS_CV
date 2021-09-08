@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from models.fpn import FPN
 from val_dataloader import FetoscopyDatasetVal
+import torchvision.transforms.functional as F
+import glob
+import matplotlib.image as mpimg
 
 
 def get_colormap():
@@ -29,14 +32,13 @@ model_list = ["model-fold-0_transposed_448.pt",
               "model-fold-4_transposed_448.pt",
               "model-fold-5_transposed_448.pt"]
 
-dataset = FetoscopyDatasetVal("../data/input/*/", x_img_size=224, y_img_size=224)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 models = []
 
 for info in model_list:
     m = FPN(num_blocks=[3, 8, 36, 3], num_classes=4, back_bone="resnet152")
-    m.load_state_dict(torch.load(f"./trained_models/{info}", map_location="cpu"))
+    m.load_state_dict(torch.load(f"../trained_models/{info}", map_location="cpu"))
     m.to(device)
     m.eval()
     models.append(m)
@@ -63,26 +65,22 @@ class Model:
         return preds
 
 
-model = Model(models)
-for image, mask, name in dataset:
-    image = image.unsqueeze(0)
-    image = image.to(device=device, dtype=torch.float32)
-    mask = cv2.imread(name, cv2.COLOR_BGR2GRAY)
-    mask = cv2.resize(mask, (224, 224))
+if __name__ == "__main__":
+    model = Model(models)
     colormap = get_colormap()
-    mask_rgb = np.zeros(mask.shape[:2] + (3,), dtype=np.uint8)
-    for cnt in range(len(colormap)):
-        mask_rgb[mask == cnt] = colormap[cnt]
-
-    output = model(image)
-    output = output.detach().squeeze().cpu().numpy()
-    output = np.moveaxis(output, 0, -1)
-    fig, ax = plt.subplots(1, 4, figsize=(10, 4))
-    ax[0].imshow(output[:, :, 0])
-    pred_color_mask = np.zeros(mask.shape[:2] + (3,), dtype=np.uint8)
-    for c in range(len(colormap)):
-        pred_color_mask[np.argmax(output, axis=2) == c] = colormap[c]
-    ax[1].imshow(pred_color_mask)
-    ax[2].imshow(mask_rgb)
-    ax[3].imshow(np.moveaxis(image.detach().squeeze().cpu().numpy(), 0, -1))
-    plt.show()
+    input_file_list = glob.glob("data/input/*.png")
+    for file in input_file_list:
+        file_name = file.split("/")[-1]
+        img = cv2.imread(file, 0)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = cv2.resize(img, (448, 448))
+        img = F.to_tensor(img)
+        img = img.unsqueeze(0)
+        output = model(img)
+        output = output.detach().squeeze().cpu().numpy()
+        output = np.moveaxis(output, 0, -1)
+        fig, ax = plt.subplots(1, 4, figsize=(10, 4))
+        pred_mask_rgb = np.zeros(img.shape[2:4] + (3,), dtype=np.uint8)
+        for c in range(len(colormap)):
+            pred_mask_rgb[np.argmax(output, axis=2) == c] = colormap[c]
+            mpimg.imsave(f"data/output/{file_name}", pred_mask_rgb)
