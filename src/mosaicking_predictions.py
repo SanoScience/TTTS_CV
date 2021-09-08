@@ -10,8 +10,8 @@ import glob
 import matplotlib.image as mpimg
 
 
-INPUT_PATH = sys.argv[1]
-OUTPUT_PATH = sys.argv[2]
+# INPUT_PATH = sys.argv[1]
+# OUTPUT_PATH = sys.argv[2]
 
 
 def get_colormap():
@@ -72,18 +72,18 @@ class Model:
 
 if __name__ == "__main__":
 
-    if not os.path.exists(OUTPUT_PATH):
-        os.makedirs(OUTPUT_PATH)
-        print(OUTPUT_PATH + " created")
+    if not os.path.exists("np_results"):
+        os.makedirs("np_results")
+        print("Dir path created!")
     else:
-        print(OUTPUT_PATH + " exists")
+        print("Dir path exists!")
 
     model = Model(models)
     colormap = get_colormap()
-    input_file_list = glob.glob("data/input/*.png")
+    input_file_list = glob.glob("../mosaicking_data/*/images/*.png")
 
     for file in input_file_list:
-        file_name = file.split("/")[-1]
+        file_name = file.split("/")[-1][:-4]
         img = cv2.imread(file, 0)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, (448, 448))
@@ -92,8 +92,4 @@ if __name__ == "__main__":
         output = model(img)
         output = output.detach().squeeze().cpu().numpy()
         output = np.moveaxis(output, 0, -1)
-        fig, ax = plt.subplots(1, 4, figsize=(10, 4))
-        pred_mask_rgb = np.zeros(img.shape[2:4] + (3,), dtype=np.uint8)
-        for c in range(len(colormap)):
-            pred_mask_rgb[np.argmax(output, axis=2) == c] = colormap[c]
-        result = mpimg.imsave(f"{OUTPUT_PATH}/{file_name}", pred_mask_rgb)
+        np.save(f"np_results/{file_name}", output.astype(np.float32))
