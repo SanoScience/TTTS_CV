@@ -47,7 +47,6 @@ for info in model_list:
 class Model:
     def __init__(self, models):
         """
-
         Args:
             models:
         """
