@@ -9,4 +9,3 @@ torch==1.8.1
 comet_ml==3.2.7
 Pillow==8.3.2
 scikit_learn==0.24.2
-skimage==0.0

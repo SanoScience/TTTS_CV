@@ -5,10 +5,13 @@ FROM python:3.8
 # Setting working directory to /opt, rather than doing all the work in root.
 # Copying the /code directory into /opt
 WORKDIR /opt
-COPY ./code /opt
+COPY ./src /opt
 
 # Running pip install to download required packages
+RUN apt-get update ##[edited]
+RUN apt-get install ffmpeg libsm6 libxext6  -y
 RUN pip install -r requirements.txt
+
 
 # Setting the default code to run when a container is launced with this image.
 ENTRYPOINT [ "python", "main.py" ]
