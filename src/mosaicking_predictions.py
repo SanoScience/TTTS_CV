@@ -3,15 +3,15 @@ import sys
 import torch
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 from models.fpn import FPN
 import torchvision.transforms.functional as F
 import glob
-import matplotlib.image as mpimg
+from do_mosaic import do_mosaic
 
 
-# INPUT_PATH = sys.argv[1]
-# OUTPUT_PATH = sys.argv[2]
+
+INPUT_PATH = sys.argv[1]
+OUTPUT_PATH = sys.argv[2]
 
 
 def get_colormap():
@@ -72,19 +72,26 @@ class Model:
 
 if __name__ == "__main__":
 
-    if not os.path.exists("np_results"):
-        os.makedirs("np_results")
+    if not os.path.exists("data/np_results"):
+        os.makedirs("data/np_results")
+        print("Dir numpy results created!")
+    else:
+        print("Dir numpy results exists!")
+
+    if not os.path.exists(OUTPUT_PATH):
+        os.makedirs(OUTPUT_PATH)
         print("Dir path created!")
     else:
         print("Dir path exists!")
 
     model = Model(models)
     colormap = get_colormap()
-    input_file_list = glob.glob("../mosaicking_data/*/images/*.png")
+    input_file_list = glob.glob("data/input/*.png")
 
     for file in input_file_list:
         file_name = file.split("/")[-1][:-4]
         img = cv2.imread(file, 0)
+        width, height = img.shape
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, (448, 448))
         img = F.to_tensor(img)
@@ -92,4 +99,7 @@ if __name__ == "__main__":
         output = model(img)
         output = output.detach().squeeze().cpu().numpy()
         output = np.moveaxis(output, 0, -1)
-        np.save(f"np_results/{file_name}", output.astype(np.float32))
+        np.save(f"data/np_results/{file_name}", output.astype(np.float32))
+    do_mosaic(INPUT_PATH=INPUT_PATH,
+              INPUT_PATH_SEG="data/np_results/",
+              OUTPUT_PATH=OUTPUT_PATH)
