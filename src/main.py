@@ -85,6 +85,7 @@ if __name__ == "__main__":
     for file in input_file_list:
         file_name = file.split("/")[-1]
         img = cv2.imread(file, 0)
+        width, height = img.shape
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = cv2.resize(img, (448, 448))
         img = F.to_tensor(img)
@@ -92,8 +93,6 @@ if __name__ == "__main__":
         output = model(img)
         output = output.detach().squeeze().cpu().numpy()
         output = np.moveaxis(output, 0, -1)
-        fig, ax = plt.subplots(1, 4, figsize=(10, 4))
-        pred_mask_rgb = np.zeros(img.shape[2:4] + (3,), dtype=np.uint8)
-        for c in range(len(colormap)):
-            pred_mask_rgb[np.argmax(output, axis=2) == c] = colormap[c]
-        result = mpimg.imsave(f"{OUTPUT_PATH}/{file_name}", pred_mask_rgb)
+        pred_mask = np.argmax(output, axis=2).astype("float32")
+        pred_mask = cv2.resize(pred_mask, (width, height))
+        result = mpimg.imsave(f"{OUTPUT_PATH}/{file_name}", pred_mask)
