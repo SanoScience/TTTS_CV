@@ -45,7 +45,7 @@ def get_matrix(img_target, img, mask_target, mask_moving, const = 0.05):
 
 
 
-def do_mosaic(INPUT_PATH='../../input/Video011_CLIP/images/', INPUT_PATH_SEG = '../../input_seg/Video011_CLIP/', OUTPUT_PATH = '../../output/Video011/'):
+def do_mosaic(INPUT_PATH='../../input/Video002_CLIP/images/', INPUT_PATH_SEG = '../../input_seg/Video002_CLIP/', OUTPUT_PATH = '../../output/Video002/'):
     
     if not os.path.exists(OUTPUT_PATH):
         os.makedirs(OUTPUT_PATH)
@@ -66,7 +66,7 @@ def do_mosaic(INPUT_PATH='../../input/Video011_CLIP/images/', INPUT_PATH_SEG = '
     pos = (0,0)
     
     
-    use_paint_window = False
+    use_paint_window = True
     use_txt_output = True
     
     
@@ -145,7 +145,7 @@ def do_mosaic(INPUT_PATH='../../input/Video011_CLIP/images/', INPUT_PATH_SEG = '
             paint_window[pos[0]:pos[0]+mask1.shape[0],pos[1]:pos[1]+mask1.shape[1],:] += img2_color*mask2[:,:,np.newaxis]
             paint_window2[pos[0]:pos[0]+mask1.shape[0],pos[1]:pos[1]+mask1.shape[1]] += img2_seg_org*mask2        
             count_window[pos[0]:pos[0]+mask1.shape[0],pos[1]:pos[1]+mask1.shape[1]] += mask2 
-            ary = (paint_window2 / np.clip(count_window,a_min=1,a_max=100000)).astype(np.uint8)        
+            ary = (paint_window / np.clip(count_window,a_min=1,a_max=100000)[:,:,np.newaxis]).astype(np.uint8)        
             plt.imshow(ary,cmap='gray')
             plt.show()        
             plt.imsave(OUTPUT_PATH+str(i).zfill(4)+'.png',ary, cmap='gray')
