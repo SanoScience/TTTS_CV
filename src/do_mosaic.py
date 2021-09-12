@@ -66,7 +66,7 @@ def do_mosaic(INPUT_PATH='../../input/Video002_CLIP/images/', INPUT_PATH_SEG = '
     pos = (0,0)
     
     
-    use_paint_window = True
+    use_paint_window = False
     use_txt_output = True
     
     
