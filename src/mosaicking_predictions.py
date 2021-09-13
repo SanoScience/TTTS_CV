@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
     model = Model(models)
     colormap = get_colormap()
-    input_file_list = glob.glob("data/input/*.png")
+    input_file_list = glob.glob(INPUT_PATH + "/*.png")
 
     for file in input_file_list:
         file_name = file.split("/")[-1][:-4]
