@@ -3,11 +3,9 @@ import sys
 import torch
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 from models.fpn import FPN
 import torchvision.transforms.functional as F
 import glob
-import matplotlib.image as mpimg
 
 
 INPUT_PATH = sys.argv[1]
@@ -80,7 +78,7 @@ if __name__ == "__main__":
 
     model = Model(models)
     colormap = get_colormap()
-    input_file_list = glob.glob("data/input/*.png")
+    input_file_list = glob.glob(INPUT_PATH + "/*.png")
 
     for file in input_file_list:
         file_name = file.split("/")[-1]
@@ -95,4 +93,5 @@ if __name__ == "__main__":
         output = np.moveaxis(output, 0, -1)
         pred_mask = np.argmax(output, axis=2).astype("float32")
         pred_mask = cv2.resize(pred_mask, (width, height))
-        result = mpimg.imsave(f"{OUTPUT_PATH}/{file_name}", pred_mask)
+        pred_mask = np.uint8(pred_mask)
+        result = cv2.imwrite(f"{OUTPUT_PATH}/{file_name}", pred_mask)
