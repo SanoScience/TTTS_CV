@@ -72,8 +72,8 @@ class Model:
 
 if __name__ == "__main__":
 
-    if not os.path.exists("data/np_results"):
-        os.makedirs("data/np_results")
+    if not os.path.exists("../images/data/np_results"):
+        os.makedirs("../images/data/np_results")
         print("Dir numpy results created!")
     else:
         print("Dir numpy results exists!")
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         output = model(img)
         output = output.detach().squeeze().cpu().numpy()
         output = np.moveaxis(output, 0, -1)
-        np.save(f"data/np_results/{file_name}", output.astype(np.float32))
+        np.save(f"../images/data/np_results/{file_name}", output.astype(np.float32))
     do_mosaic(INPUT_PATH=INPUT_PATH,
-              INPUT_PATH_SEG="data/np_results/",
+              INPUT_PATH_SEG="../images/data/np_results/",
               OUTPUT_PATH=OUTPUT_PATH)
