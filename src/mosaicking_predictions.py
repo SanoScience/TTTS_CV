@@ -13,23 +13,6 @@ from do_mosaic import do_mosaic
 INPUT_PATH = sys.argv[1]
 OUTPUT_PATH = sys.argv[2]
 
-
-def get_colormap():
-    """
-    Returns FetReg colormap
-    """
-    colormap = np.asarray(
-        [
-            [0, 0, 0],  # 0 - background
-            [255, 0, 0],  # 1 - vessel
-            [0, 0, 255],  # 2 - tool
-            [0, 255, 0],  # 3 - fetus
-
-        ]
-    )
-    return colormap
-
-
 model_list = ["model-fold-0_transposed_448.pt",
               "model-fold-1_transposed_448.pt",
               "model-fold-2_transposed_448.pt",
@@ -72,8 +55,8 @@ class Model:
 
 if __name__ == "__main__":
 
-    if not os.path.exists("../images/data/np_results"):
-        os.makedirs("../images/data/np_results")
+    if not os.path.exists("../images/np_results"):
+        os.makedirs("../images/np_results")
         print("Dir numpy results created!")
     else:
         print("Dir numpy results exists!")
@@ -85,7 +68,6 @@ if __name__ == "__main__":
         print("Dir path exists!")
 
     model = Model(models)
-    colormap = get_colormap()
     input_file_list = glob.glob(INPUT_PATH + "/*.png")
 
     for file in input_file_list:
@@ -99,7 +81,7 @@ if __name__ == "__main__":
         output = model(img)
         output = output.detach().squeeze().cpu().numpy()
         output = np.moveaxis(output, 0, -1)
-        np.save(f"../images/data/np_results/{file_name}", output.astype(np.float32))
+        np.save(f"../images/np_results/{file_name}", output.astype(np.float32))
     do_mosaic(INPUT_PATH=INPUT_PATH,
-              INPUT_PATH_SEG="../images/data/np_results/",
+              INPUT_PATH_SEG="../images/np_results/",
               OUTPUT_PATH=OUTPUT_PATH)
